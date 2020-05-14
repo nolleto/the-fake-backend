@@ -14,6 +14,8 @@ import {
 
 const OVERRIDE_DEFAULT_OPTION = 'Default';
 
+const overridesStorage: { [key: string]: string } = {};
+
 function isNotEmpty<T>(array: T[]) {
   return array.length > 0;
 }
@@ -48,8 +50,14 @@ function getOverridableRoutesMethodsTypesNames(route: Route) {
   );
 }
 
-export function findSelectedMethodOverride(method: Method) {
-  return method.overrides?.find(({ selected }) => selected);
+export function findSelectedMethodOverride(route: Route, method: Method) {
+  const overrideNameSelected = overridesStorage[`${route.path}-${method.type}`];
+
+  if (overrideNameSelected) {
+    return method.overrides?.find(({ name }) => overrideNameSelected);
+  }
+
+  return null;
 }
 
 export class OverrideManager {
@@ -83,7 +91,7 @@ export class OverrideManager {
   getAllSelected(): Override[] {
     return this.routeManager.getAll().reduce<Override[]>((acc, route) => {
       route.methods.forEach((method) => {
-        const selectedOverride = findSelectedMethodOverride(method);
+        const selectedOverride = findSelectedMethodOverride(route, method);
 
         if (selectedOverride) {
           acc.push({
@@ -112,9 +120,7 @@ export class OverrideManager {
       getOverridesNamesWithDefault(overrides)
     );
 
-    overrides.forEach((override) => {
-      override.selected = override.name === name;
-    });
+    overridesStorage[`${url}-${type}`] = name;
 
     return { routePath: url, methodType: type, name };
   }
